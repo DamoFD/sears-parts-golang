@@ -1,4 +1,4 @@
-package main
+package search
 
 import (
 	"encoding/json"
@@ -7,53 +7,48 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-
-    "github.com/DamoFD/appliance-parts-hub/search"
 )
 
-type Part struct {
+type Model struct {
+	ID        string   `json:"id"`
+	Number    string   `json:"number"`
+	Title     string   `json:"title"`
+	Images    []string `json:"images"`
+	Brand     Brand    `json:"brand"`
+	PartCount int      `json:"partCount"`
+}
+
+type Brand struct {
 	ID    string `json:"id"`
-	Title string `json:"title"`
+	Name  string `json:"name"`
+	Image string `json:"image"`
 }
 
 type Response struct {
 	Data struct {
-		Model struct {
-			ID       string `json:"id"`
-			Title    string `json:"title"`
-			Number   string `json:"number"`
-			HasParts bool   `json:"hasParts"`
-			Parts    struct {
-				TotalCount int    `json:"totalCount"`
-				Parts      []Part `json:"parts"`
-			} `json:"parts"`
-		} `json:"model"`
+		ModelSearch struct {
+			TotalCount int     `json:"totalCount"`
+			Models     []Model `json:"models"`
+		} `json:"modelSearch"`
 	} `json:"data"`
 }
 
-type Order struct {
-	Name  string `json:"name"`
-	Order string `json:"order"`
+type Variables struct {
+	Query       string      `json:"q"`
+	Page        Page        `json:"page"`
+	PriceFilter PriceFilter `json:"priceFilter"`
+	Filters     []string    `json:"filters"`
 }
 
-type Filter struct {
+type Page struct {
+	From int `json:"from"`
+	Size int `json:"size"`
+}
+
+type PriceFilter struct {
 	Name   string   `json:"name"`
 	Type   string   `json:"type"`
 	Values []string `json:"values"`
-}
-
-type ParentFilter struct {
-	Name   string   `json:"name"`
-	Values []string `json:"values"`
-}
-
-type Variables struct {
-	ID           string         `json:"id"`
-	Orders       []Order        `json:"orders"`
-	Filters      []Filter       `json:"filters"`
-	From         int            `json:"from"`
-	Size         int            `json:"size"`
-	ParentFilter []ParentFilter `json:"parentFilter"`
 }
 
 type PersistedQuery struct {
@@ -93,40 +88,35 @@ func (u URL) BuildURL() string {
 	)
 }
 
-func getParts(id string, from int, size int) []Part {
-	orders := []Order{
-		{"SELLABLE", "DESC"},
-		{"RANK", "DESC"},
-		{"AVAILABILITY", "DESC"},
-	}
+func searchModel(query string, from int, size int) []Model {
+    page := Page{
+        From: from,
+        Size: size,
+    }
 
-	filters := []Filter{
-		{"RESTRICTION", "NOT", []string{"31", "49", "60", "12", "17"}},
-	}
-
-	parentFilter := []ParentFilter{
-		{"ISMAINCATEGORY", []string{"true"}},
-	}
+    priceFilter := PriceFilter{
+        Name:   "PRICE",
+        Type:   "RANGE",
+        Values: []string{">1"},
+    }
 
 	variables := Variables{
-		ID:           id,
-		Orders:       orders,
-		Filters:      filters,
-		From:         from,
-		Size:         size,
-		ParentFilter: parentFilter,
+        Query: query,
+        Page: page,
+        PriceFilter: priceFilter,
+        Filters: []string{},
 	}
 
 	extensions := Extensions{
 		PersistedQuery: PersistedQuery{
 			Version:    1,
-			Sha256Hash: "ec724acca5636f88b79dd75604b6812d84e8d3e091a3e614aac285ee9a836e39",
+			Sha256Hash: "eadec1e2e8cbfc0b7c3a4b87de9af960a4aa14df1cbea852fdff503e9740ad67",
 		},
 	}
 
 	urlStruct := URL{
 		BaseURL:       "https://catalog.searspartsdirect.com",
-		OperationName: "getModel",
+		OperationName: "modelSearch",
 		Variables:     variables,
 		Extensions:    extensions,
 	}
@@ -177,23 +167,12 @@ func getParts(id string, from int, size int) []Part {
 		log.Fatal(err)
 	}
 
-	// Access the parts
-	parts := response.Data.Model.Parts.Parts
+	// Access the models
+	models := response.Data.ModelSearch.Models
 
-	return parts
+	return models
 }
 
-func main() {
-
-	// Get the parts
-	//parts := getParts("4tjp66n58g-003048", 20, 50)
-
-	// Print the parts
-	//fmt.Println(parts)
-
-	// Search Models
-	models := search.SearchModels("mvwb766", 0, 20)
-
-    // Print the models
-    fmt.Println(models)
+func SearchModels(query string, from int, size int) []Model {
+    return searchModel(query, from, size)
 }
