@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-    "github.com/DamoFD/appliance-parts-hub/search"
+	"github.com/DamoFD/appliance-parts-hub/search"
 )
 
 type Part struct {
@@ -192,8 +192,14 @@ func main() {
 	//fmt.Println(parts)
 
 	// Search Models
-	models := search.SearchModels("mvwb766", 0, 20)
+	//models := search.SearchModels("mvwb766", 0, 20)
 
-    // Print the models
-    fmt.Println(models)
+	// Print the models
+	//fmt.Println(models)
+
+	// Search Parts
+	parts := search.SearchParts("w104", 0, 20)
+
+	// Print the parts
+	fmt.Println(parts)
 }
